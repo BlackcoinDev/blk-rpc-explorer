@@ -199,13 +199,13 @@ module.exports = {
 		{
 			"category":"mempool",
 			"url":"/api/mempool/count",
-			"desc":"Returns the number of transactions in Bitcoin Core's mempool.",
+			"desc":"Returns the number of transactions in Blackcoin More's mempool.",
 			"returnType":"integer"
 		},
 		{
 			"category":"mempool",
 			"url":"/api/mempool/summary",
-			"desc":"Returns a summary of Bitcoin Core's mempool (full output from 'getmempoolinfo')",
+			"desc":"Returns a summary of Blackcoin More's mempool (full output from 'getmempoolinfo')",
 			"returnType":"json",
 			"example": {"loaded":true,"size":225,"bytes":76209,"usage":410496,"total_fee":0.01763495,"maxmempool":15000000,"mempoolminfee":0.00001,"minrelaytxfee":0.00001,"unbroadcastcount":0}
 		},
@@ -223,7 +223,7 @@ module.exports = {
 		{
 			"category":"price",
 			"url":"/api/price",
-			"desc":"Returns the price of 1 BTC, in USD, EUR, GBP, and XAU",
+			"desc":"Returns the price of 1 BLK, in USD, EUR, GBP, and XAU",
 			"returnType":"json",
 			"optionalParams": {
 				"format":"Set to 'true' to include thousands-separator formatting in results"
@@ -232,7 +232,7 @@ module.exports = {
 		{
 			"category":"price",
 			"url":"/api/price/:currency",
-			"desc":"Returns the price of 1 BTC, in one of USD, EUR, GBP, XAU",
+			"desc":"Returns the price of 1 BLK, in one of USD, EUR, GBP, XAU",
 			"params":[{name: "currency", "options": ["usd", "eur", "gbp", "xau"]}],
 			"returnType":"number",
 			"testUrl": "/api/price/usd",

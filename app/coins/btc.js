@@ -14,17 +14,17 @@ for (let i = 1; i < 34; i++) {
 const currencyUnits = [
 	{
 		type:"native",
-		name:"BTC",
+		name:"BLK",
 		multiplier:1,
 		default:true,
-		values:["", "btc", "BTC"],
+		values:["", "blk", "BLK"],
 		decimalPlaces:8
 	},
 	{
 		type:"native",
-		name:"mBTC",
+		name:"mBLK",
 		multiplier:1000,
-		values:["mbtc"],
+		values:["mblk"],
 		decimalPlaces:5
 	},
 	{
@@ -60,8 +60,8 @@ const currencyUnits = [
 ];
 
 module.exports = {
-	name:"Bitcoin",
-	ticker:"BTC",
+	name:"Blackcoin",
+	ticker:"BLK",
 	logoUrlsByNetwork:{
 		"main":"./img/network-mainnet/logo.svg",
 		"test":"./img/network-testnet/logo.svg",
@@ -81,7 +81,7 @@ module.exports = {
 		"regtest": "#777"
 	},
 	siteTitlesByNetwork: {
-		"main":"Bitcoin Explorer",
+		"main":"Blackcoin Explorer",
 		"test":"Testnet Explorer",
 		"regtest":"Regtest Explorer",
 		"signet":"Signet Explorer",
@@ -106,33 +106,33 @@ module.exports = {
 	maxBlockSize: 1000000,
 	minTxBytes: 166, // ref: https://en.bitcoin.it/wiki/Maximum_transaction_rate
 	minTxWeight: 166 * 4, // hack
-	difficultyAdjustmentBlockCount: 2016,
+	difficultyAdjustmentBlockCount: 1,
 	maxSupplyByNetwork: {
-		"main": new Decimal(20999817.31308491), // ref: https://bitcoin.stackexchange.com/a/38998
-		"test": new Decimal(21000000),
-		"regtest": new Decimal(21000000),
-		"signet": new Decimal(21000000)
+		"main": new Decimal(100000000), // ref: https://bitcoin.stackexchange.com/a/38998
+		"test": new Decimal(100000000),
+		"regtest": new Decimal(100000000),
+		"signet": new Decimal(100000000)
 	},
-	targetBlockTimeSeconds: 600,
-	targetBlockTimeMinutes: 10,
+	targetBlockTimeSeconds: 64,
+	targetBlockTimeMinutes: 1,
 	currencyUnits:currencyUnits,
-	currencyUnitsByName:{"BTC":currencyUnits[0], "mBTC":currencyUnits[1], "bits":currencyUnits[2], "sat":currencyUnits[3]},
+	currencyUnitsByName:{"BLK":currencyUnits[0], "mBLK":currencyUnits[1], "bits":currencyUnits[2], "sat":currencyUnits[3]},
 	baseCurrencyUnit:currencyUnits[3],
 	defaultCurrencyUnit:currencyUnits[0],
 	feeSatoshiPerByteBucketMaxima: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 50, 75, 100, 150],
 	
 	halvingBlockIntervalsByNetwork: {
-		"main": 210000,
-		"test": 210000,
-		"regtest": 150,
-		"signet": 210000
+		"main": 100000000,
+		"test": 100000000,
+		"regtest": 100000000,
+		"signet": 100000000
 	},
 
 	// used for supply estimates that don't need full gettxoutset accuracy
 	coinSupplyCheckpointsByNetwork: {
-		"main": [ 675046, new Decimal(18656332.38) ],
-		"test": [ 1940614, new Decimal(20963051.112) ],
-		"signet": [ 29472, new Decimal(1473600) ],
+		"main": [ 0, new Decimal(0) ],
+		"test": [ 0, new Decimal(0) ],
+		"signet": [ 0, new Decimal(0) ],
 		"regtest": [ 0, new Decimal(0) ]
 	},
 

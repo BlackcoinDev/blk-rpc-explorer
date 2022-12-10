@@ -1,7 +1,7 @@
 extends layout
 
 block headContent
-	title Bitcoin Explorer
+	title Blackcoin Explorer
 	
 block content
 
@@ -46,7 +46,7 @@ block content
 	else
 
 		+dismissableAlert("homepageWelcomeBannerDismissed")
-			h5 Bitcoin Explorer
+			h5 Blackcoin Explorer
 				span.fw-light :
 					span.fst-italic.ms-1 The free, open-source, easy-to-setup, easy-to-use, self-hosted explorer
 			
@@ -57,7 +57,7 @@ block content
 
 			.mt-2
 				if (global.sourcecodeProjectMetadata)
-					a.btn.btn-sm.btn-primary.mb-2.mb-md-1.me-3(href="https://github.com/janoside/btc-rpc-explorer", title="View source code", data-bs-toggle="tooltip", data-bs-placement="bottom")
+					a.btn.btn-sm.btn-primary.mb-2.mb-md-1.me-3(href="https://github.com/blackcoindev/blk-rpc-explorer", title="View source code", data-bs-toggle="tooltip", data-bs-placement="bottom")
 						i.bi-git.fs-6.text-white.me-2
 						| View Source
 
@@ -65,9 +65,9 @@ block content
 					i.bi-heart-fill.fs-6.text-danger.me-2
 					| Donate
 					
-				a.btn.btn-sm.btn-primary.mb-2.mb-md-1.me-3(href="https://twitter.com/BitcoinExplorer", target="_blank", title="Follow @BitcoinExplorer on Twitter", data-bs-toggle="tooltip", data-bs-placement="bottom")
+				a.btn.btn-sm.btn-primary.mb-2.mb-md-1.me-3(href="https://twitter.com/BlackcoinOrg", target="_blank", title="Follow @BlackcoinOrg on Twitter", data-bs-toggle="tooltip", data-bs-placement="bottom")
 					i.bi-twitter.fs-6.text-twitter.me-2
-					| @BitcoinExplorer
+					| @BlackcoinOrg
 
 		
 		if (global.activeBlockchain == "main")

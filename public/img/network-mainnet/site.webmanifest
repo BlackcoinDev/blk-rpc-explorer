@@ -1,6 +1,6 @@
 {
-    "name": "BTC Explorer",
-    "short_name": "BTC Explorer",
+    "name": "BLK Explorer",
+    "short_name": "BLK Explorer",
     "icons": [
         {
             "src": "android-chrome-192x192.png",
