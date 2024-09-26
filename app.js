@@ -72,13 +72,13 @@ const logger = require('morgan');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const session = require("express-session");
-const csurf = require("csurf");
+const MemoryStore = require('memorystore')(session);
+const csrfApi = require("csurf");
 const config = require("./app/config.js");
 const simpleGit = require('simple-git');
 const utils = require("./app/utils.js");
 const moment = require("moment");
 const Decimal = require('decimal.js');
-const bitcoinCore = require("btc-rpc-client");
 const pug = require("pug");
 const momentDurationFormat = require("moment-duration-format");
 const coreApi = require("./app/api/coreApi.js");
@@ -95,14 +95,17 @@ const auth = require('./app/auth.js');
 const sso = require('./app/sso.js');
 const markdown = require("markdown-it")();
 const v8 = require("v8");
-var compression = require("compression");
+const compression = require("compression");
+const jayson = require('jayson/promise');
+const { rateLimit } = require("express-rate-limit");
+
 
 const appUtils = require("@janoside/app-utils");
 const s3Utils = appUtils.s3Utils;
 
 let cdnS3Bucket = null;
 if (config.cdn.active) {
-	cdnS3Bucket = s3Utils.createBucket(config.cdn.s3Bucket, config.cdn.s3BucketPath);
+	cdnS3Bucket = s3Utils.createBucket(config.cdn.s3Bucket, config.cdn.s3BucketRegion, config.cdn.s3BucketPath);
 }
 
 require("./app/currencies.js");
@@ -203,17 +206,69 @@ if (process.env.BTCEXP_BASIC_AUTH_PASSWORD) {
 //expressApp.use(logger('dev'));
 expressApp.use(bodyParser.json());
 expressApp.use(bodyParser.urlencoded({ extended: false }));
-expressApp.use(session({
+
+
+const sessionConfig = {
 	secret: config.cookieSecret,
 	resave: false,
-	saveUninitialized: false
-}));
+	saveUninitialized: true,
+	cookie: {
+		secure: config.secureSite
+	}
+};
+
+if (config.secureSite) {
+	expressApp.set('trust proxy', 1);
+}
+
+// Helpful reference for production: nginx HTTPS proxy:
+// https://gist.github.com/nikmartin/5902176
+debugLog(`Session config: ${JSON.stringify(utils.obfuscateProperties(sessionConfig, ["secret"]))}`);
+
+sessionConfig.store = new MemoryStore({
+	checkPeriod: 86400000 // prune expired entries every 24h
+});
+
+
+expressApp.use(session(sessionConfig));
 
 expressApp.use(compression());
 
 expressApp.use(config.baseUrl, express.static(path.join(__dirname, 'public'), {
 	maxAge: 30 * 24 * 60 * 60 * 1000
 }));
+
+
+// https://www.npmjs.com/package/express-rate-limit
+const rateLimitWindowMinutes = 15;
+const rateLimitWindowMaxRequests = 200;
+const rateLimiter = rateLimit({
+	windowMs: rateLimitWindowMinutes * 60 * 1000, // 15 minutes
+	limit: rateLimitWindowMaxRequests, // Limit each IP to 100 requests per `window` (here, per 15 minutes).
+	standardHeaders: 'draft-7', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
+	legacyHeaders: false, // Disable the `X-RateLimit-*` headers.
+	skip: function (req, res) {
+		if (req.originalUrl.includes("/snippet/")) {
+			return true;
+		}
+
+		if (req.originalUrl.includes("/api/")) {
+			return true;
+		}
+
+		return false;
+	},
+	handler: function (req, res, next) {
+		debugErrorLog(`Rate-limiting request: ip=${req.ip}, req=${req.originalUrl}`)
+		res.status(429).json({
+			message: "Too many requests, please try again later.",
+		});
+	}
+});
+
+// Apply the rate limiting middleware to all requests.
+expressApp.use(rateLimiter);
+
 
 
 if (config.baseUrl != '/') {
@@ -223,8 +278,9 @@ if (config.baseUrl != '/') {
 
 // if a CDN is configured, these assets will be uploaded at launch, then referenced from there
 const cdnItems = [
-	[`style/dark.css`, `text/css`, "utf8"],
-	[`style/light.css`, `text/css`, "utf8"],
+	[`style/dark.min.css`, `text/css`, "utf8"],
+	[`style/light.min.css`, `text/css`, "utf8"],
+	[`style/dark-v1.min.css`, `text/css`, "utf8"],
 	[`style/highlight.min.css`, `text/css`, "utf8"],
 	[`style/dataTables.bootstrap4.min.css`, `text/css`, "utf8"],
 	[`style/bootstrap-icons.css`, `text/css`, "utf8"],
@@ -728,6 +784,8 @@ expressApp.onStartup = async () => {
 	global.coinConfig = coins[config.coin];
 	global.coinConfigs = coins;
 
+	global.SATS_PER_BTC = global.coinConfig.baseCurrencyUnit.multiplier;
+
 	global.specialTransactions = {};
 	global.specialBlocks = {};
 	global.specialAddresses = {};
@@ -851,11 +909,21 @@ expressApp.onStartup = async () => {
 	}
 }
 
-expressApp.continueStartup = function() {
-	var rpcCred = config.credentials.rpc;
-	debugLog(`Connecting to RPC node at ${rpcCred.host}:${rpcCred.port}`);
+function connectToRpcServer() {
+	// reload credentials, the main "config.credentials.rpc" can be stale
+	// since the username/password can be sourced from the auth cookie
+	// which changes each startup of bitcoind
+	let credentialsForRpcConnect = config.credentials.loadFreshRpcCredentials();
 
-	var rpcClientProperties = {
+	debugLog(`RPC Credentials: ${JSON.stringify(utils.obfuscateProperties(credentialsForRpcConnect, ["password"]), null, 4)}`);
+
+	let rpcCred = credentialsForRpcConnect;
+	debugLog(`Connecting to RPC node at [${rpcCred.host}]:${rpcCred.port}`);
+
+	let usernamePassword = `${rpcCred.username}:${rpcCred.password}`;
+	let authorizationHeader = `Basic ${btoa(usernamePassword)}`; // basic auth header format (base64 of "username:password")
+
+	let rpcClientProperties = {
 		host: rpcCred.host,
 		port: rpcCred.port,
 		username: rpcCred.username,
@@ -863,17 +931,45 @@ expressApp.continueStartup = function() {
 		timeout: rpcCred.timeout
 	};
 
-	global.rpcClient = new bitcoinCore(rpcClientProperties);
+	debugLog(`RPC Connection properties: ${JSON.stringify(utils.obfuscateProperties(rpcClientProperties, ["password"]), null, 4)}`);
 
-	var rpcClientNoTimeoutProperties = {
+	// add after logging to avoid logging base64'd credentials
+	rpcClientProperties.headers = {
+		"Authorization": authorizationHeader
+	};
+
+	// main RPC client
+	global.rpcClient = jayson.Client.http(rpcClientProperties);
+
+	let rpcClientNoTimeoutProperties = {
 		host: rpcCred.host,
 		port: rpcCred.port,
 		username: rpcCred.username,
 		password: rpcCred.password,
-		timeout: 0
+		timeout: 0,
+		headers: {
+			"Authorization": authorizationHeader
+		}
 	};
 
-	global.rpcClientNoTimeout = new bitcoinCore(rpcClientNoTimeoutProperties);
+	// no timeout RPC client, for long-running commands
+	global.rpcClientNoTimeout = jayson.Client.http(rpcClientNoTimeoutProperties);
+}
+
+expressApp.continueStartup = function() {
+	connectToRpcServer();
+
+	// if using cookie auth, watch for changes to the file and reconnect
+	if (config.credentials.rpc.authType == "cookie") {
+		debugLog(`RPC authentication is cookie based; watching for changes to the auth cookie file...`);
+
+		fs.watchFile(config.credentials.rpc.authCookieFilepath, (curr, prev) => {
+			debugLog(`RPC auth cookie change detected; attempting reconnect...`);
+
+			connectToRpcServer();
+		});
+	}
+
 
 	// default values - after we connect via RPC, we update these
 	global.txindexAvailable = false;
@@ -888,7 +984,7 @@ expressApp.continueStartup = function() {
 
 
 	if (config.addressApi) {
-		var supportedAddressApis = addressApi.getSupportedAddressApis();
+		let supportedAddressApis = addressApi.getSupportedAddressApis();
 		if (!supportedAddressApis.includes(config.addressApi)) {
 			utils.logError("32907ghsd0ge", `Unrecognized value for BTCEXP_ADDRESS_API: '${config.addressApi}'. Valid options are: ${supportedAddressApis}`);
 		}
@@ -1032,7 +1128,8 @@ expressApp.use(function(req, res, next) {
 	next();
 });
 
-expressApp.use(csurf(), (req, res, next) => {
+const csrfProtection = csrfApi();
+expressApp.use(csrfProtection, (req, res, next) => {
 	res.locals.csrfToken = req.csrfToken();
 
 	next();
@@ -1150,7 +1247,7 @@ expressApp.locals.assetUrl = (path) => {
 
 // debug setting to skip js/css integrity checks
 const skipIntegrityChecks = false;
-const resourceIntegrityHashes = JSON.parse(fs.readFileSync(path.join(process.cwd(), "public/txt/resource-integrity.json")));
+const resourceIntegrityHashes = require("./app/resourceIntegrityHashes.js");
 
 expressApp.locals.assetIntegrity = (filename) => {
 	if (!skipIntegrityChecks && resourceIntegrityHashes[filename]) {

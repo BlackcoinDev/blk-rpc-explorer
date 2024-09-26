@@ -7,7 +7,6 @@ const fs = require('fs');
 const v8 = require('v8');
 
 const express = require('express');
-const csurf = require('csurf');
 const router = express.Router();
 const util = require('util');
 const moment = require('moment');
@@ -27,8 +26,6 @@ const addressApi = require("./../app/api/addressApi.js");
 
 const statTracker = require("./../app/statTracker.js");
 const appStats = require("./../app/appStats.js");
-
-const forceCsrf = csurf({ ignoreMethods: [] });
 
 
 
@@ -139,7 +136,7 @@ router.get("/app-stats", function(req, res, next) {
 router.get('/resetUserSettings', (req, res) => {
 	req.session.userSettings = Object.create(null);
  
-	var userSettings = Object.create(null);
+	let userSettings = Object.create(null);
 	
 	res.cookie("user-settings", JSON.stringify(userSettings));
 
