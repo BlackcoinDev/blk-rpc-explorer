@@ -8,7 +8,7 @@ const fs = require("fs");
 const debug = require("debug");
 const debugLog = debug("btcexp:config");
 
-const btcUri = process.env.BTCEXP_BITCOIND_URI ? url.parse(process.env.BTCEXP_BITCOIND_URI, true) : { query: { } };
+const btcUri = process.env.BTCEXP_BITCOIND_URI ? url.parse(process.env.BTCEXP_BITCOIND_URI, true) : { query: {} };
 const btcAuth = btcUri.auth ? btcUri.auth.split(':') : [];
 
 
@@ -18,7 +18,7 @@ function loadFreshRpcCredentials() {
 	let username = btcAuth[0] || process.env.BTCEXP_BITCOIND_USER;
 	let password = btcAuth[1] || process.env.BTCEXP_BITCOIND_PASS;
 
-	let authCookieFilepath = btcUri.query.cookie || process.env.BTCEXP_BITCOIND_COOKIE || path.join(os.homedir(), '.bitcoin', '.cookie');
+	let authCookieFilepath = btcUri.query.cookie || process.env.BTCEXP_BITCOIND_COOKIE || path.join(os.homedir(), '.blackmore', '.cookie');
 
 	let authType = "usernamePassword";
 
@@ -28,9 +28,9 @@ function loadFreshRpcCredentials() {
 
 	if (authType == "cookie") {
 		debugLog(`Loading RPC cookie file: ${authCookieFilepath}`);
-		
-		[ username, password ] = fs.readFileSync(authCookieFilepath).toString().trim().split(':', 2);
-		
+
+		[username, password] = fs.readFileSync(authCookieFilepath).toString().trim().split(':', 2);
+
 		if (!password) {
 			throw new Error(`Cookie file ${authCookieFilepath} in unexpected format`);
 		}
@@ -44,9 +44,9 @@ function loadFreshRpcCredentials() {
 
 		username: username,
 		password: password,
-		
+
 		authCookieFilepath: authCookieFilepath,
-		
+
 		timeout: parseInt(btcUri.query.timeout || process.env.BTCEXP_BITCOIND_RPC_TIMEOUT || 5000),
 	};
 }

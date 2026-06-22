@@ -14,84 +14,95 @@ block content
 
 	.tab-content
 		+pageTab("Details", true)
-			+contentSection("Summary")
-				+summaryRow(3)
-					+summaryItem("Transactions")
-						| #{blockTemplate.transactions.length.toLocaleString()}
+			if (blockTemplate)
+				+contentSection("Summary")
+					+summaryRow(3)
+						+summaryItem("Transactions")
+							| #{blockTemplate.transactions.length.toLocaleString()}
 
 
-					+summaryItem("Fee Rates", "Minimum / Median / Maximum fee rates for transaction expected to be included in the next block.", "sat/vB")
-						if (maxFeeRate != -1)
-							span.border-dotted(title="Minimum fee rate", data-bs-toggle="tooltip")
-								+numWithMutedDecimals(new Decimal(minFeeRate).toDP(2).toString())
-							
-							span.text-muted.fw-light.mx-2 /
-							
-							span.border-dotted(title="Median fee rate", data-bs-toggle="tooltip")
-								+numWithMutedDecimals(new Decimal(medianFeeRate).toDP(2).toString())
-							
-							span.text-muted.fw-light.mx-2 /
-							
-							span.border-dotted(title="Maximum fee rate", data-bs-toggle="tooltip")
-								+numWithMutedDecimals(new Decimal(maxFeeRate).toDP(1).toString())
+						+summaryItem("Fee Rates", "Minimum / Median / Maximum fee rates for transaction expected to be included in the next block.", "sat/vB")
+							if (maxFeeRate != -1)
+								span.border-dotted(title="Minimum fee rate", data-bs-toggle="tooltip")
+									+numWithMutedDecimals(new Decimal(minFeeRate).toDP(2).toString())
+								
+								span.text-muted.fw-light.mx-2 /
+								
+								span.border-dotted(title="Median fee rate", data-bs-toggle="tooltip")
+									+numWithMutedDecimals(new Decimal(medianFeeRate).toDP(2).toString())
+								
+								span.text-muted.fw-light.mx-2 /
+								
+								span.border-dotted(title="Maximum fee rate", data-bs-toggle="tooltip")
+									+numWithMutedDecimals(new Decimal(maxFeeRate).toDP(1).toString())
 
-						else
-							span -
+							else
+								span -
 
-					+summaryItem("Total Fees")
-						- var subsidy = coinConfig.blockRewardFunction(blockTemplate.height, global.activeBlockchain);
-						- var totalFees = new Decimal(blockTemplate.coinbasevalue).dividedBy(coinConfig.baseCurrencyUnit.multiplier).minus(subsidy);
+						+summaryItem("Total Fees")
+							- var subsidy = coinConfig.blockRewardFunction(blockTemplate.height, global.activeBlockchain);
+							- var totalFees = new Decimal(blockTemplate.coinbasevalue).dividedBy(coinConfig.baseCurrencyUnit.multiplier).minus(subsidy);
 
-						+valueDisplay(totalFees)
+							+valueDisplay(totalFees)
 
-			if (true)
-				+contentSection(blockTemplate.transactions.length.toLocaleString() + " Transaction" + (blockTemplate.transactions.length == 1 ? "" : "s"))
-					.table-responsive
-						table.table.table-borderless.table-striped.mb-0
-							thead
-								tr
-									th.text-card-highlight.text-uppercase.fw-light #
-									th.text-card-highlight.text-uppercase.fw-light ID
-									th.text-end.text-card-highlight.fw-light
-										span.text-uppercase Fee Rate
-										small.ms-1 (sat/vB)
-
-									th.text-end.text-card-highlight.text-uppercase.fw-light Fee
-									th.text-end.text-card-highlight.fw-light
-										span.text-uppercase Weight
-										small.ms-1 (wu)
-									//th Depends
-
-							tbody
-								each tx, txIndex in blockTemplate.transactions
+				if (true)
+					+contentSection(blockTemplate.transactions.length.toLocaleString() + " Transaction" + (blockTemplate.transactions.length == 1 ? "" : "s"))
+						.table-responsive
+							table.table.table-borderless.table-striped.mb-0
+								thead
 									tr
-										td
-											small.text-muted #{(txIndex).toLocaleString()}
+										th.text-card-highlight.text-uppercase.fw-light #
+										th.text-card-highlight.text-uppercase.fw-light ID
+										th.text-end.text-card-highlight.fw-light
+											span.text-uppercase Fee Rate
+											small.ms-1 (sat/vB)
 
-										td
-											a(href=`./tx/${tx.txid}`) #{utils.ellipsizeMiddle(tx.txid, 16)}
+										th.text-end.text-card-highlight.text-uppercase.fw-light Fee
+										th.text-end.text-card-highlight.fw-light
+											span.text-uppercase Weight
+											small.ms-1 (wu)
+										//th Depends
 
-										td.text-end
-											| #{new Decimal(tx.fee).dividedBy(tx.weight).times(4).toDP(2)}
+								tbody
+									each tx, txIndex in blockTemplate.transactions
+										tr
+											td
+												small.text-muted #{(txIndex).toLocaleString()}
 
-											if (tx.avgFeeRate)
-												span.text-muted.ms-2 (
-													span.border-dotted(title="Effective fee rate, including ancestor transactions", data-bs-toggle="tooltip")
-														span.text-muted #{new Decimal(tx.avgFeeRate).toDP(2)}
-													| )
-											
+											td
+												a(href=`./tx/${tx.txid}`) #{utils.ellipsizeMiddle(tx.txid, 16)}
 
-										td.text-end
-											+valueDisplay(new Decimal(tx.fee).dividedBy(coinConfig.baseCurrencyUnit.multiplier))
+											td.text-end
+												| #{new Decimal(tx.fee).dividedBy(tx.weight).times(4).toDP(2)}
 
-										td.text-end #{tx.weight.toLocaleString()}
-										//td #{tx.depends.map(x => `#${(x - 1)}`).join(", ")}
+												if (tx.avgFeeRate)
+													span.text-muted.ms-2 (
+														span.border-dotted(title="Effective fee rate, including ancestor transactions", data-bs-toggle="tooltip")
+															span.text-muted #{new Decimal(tx.avgFeeRate).toDP(2)}
+														| )
+												
+
+											td.text-end
+												+valueDisplay(new Decimal(tx.fee).dividedBy(coinConfig.baseCurrencyUnit.multiplier))
+
+											td.text-end #{tx.weight.toLocaleString()}
+											//td #{tx.depends.map(x => `#${(x - 1)}`).join(", ")}
+			else
+				+contentSection("Summary")
+					.alert.alert-warning.shadow-sm.mb-0
+						| The <b>getblocktemplate</b> command is not supported or returned no data for this network. 
+						span.ms-2 This is expected on Proof-of-Stake networks like <b>Blackcoin</b> when PoW mining is disabled.
 
 
 		+pageTab("JSON")
-			- var x = blockTemplate;
-			- delete x.transactions;
+			if (blockTemplate)
+				- var x = blockTemplate;
+				- delete x.transactions;
 
-			+contentSection("Template Details")
-				pre
-					code.json #{JSON.stringify(x, null, 4)}
+				+contentSection("Template Details")
+					pre
+						code.json #{JSON.stringify(x, null, 4)}
+			else
+				+contentSection("Template Details")
+					.alert.alert-warning.shadow-sm.mb-0
+						| No block template data available.

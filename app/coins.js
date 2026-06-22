@@ -1,9 +1,9 @@
 "use strict";
 
-const blk = require("./coins/btc.js");
+const blk = require("./coins/blk.js");
 
 module.exports = {
 	"BLK": blk,
 
-	"coins":["BLK"]
+	"coins": ["BLK"]
 };
